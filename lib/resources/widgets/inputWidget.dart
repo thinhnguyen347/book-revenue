@@ -1,13 +1,25 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-Widget inputWidget({required String labelText, required controller, required hintText}) {
+Widget inputTextWidget({required controller, required hintText}) {
   return Container(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(right: 16),
       child: TextField(
         obscureText: false,
         decoration: InputDecoration(
-          labelText: labelText,
+          hintText: hintText,
+        ),
+        controller: controller,
+      ));
+}
+
+Widget inputNumberWidget({required controller, required hintText}) {
+  return Container(
+      padding: const EdgeInsets.only(right: 16),
+      child: TextField(
+        obscureText: false,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
           hintText: hintText,
         ),
         controller: controller,

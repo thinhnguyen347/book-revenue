@@ -1,6 +1,9 @@
-// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
+// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, avoid_print, unnecessary_this
 
+import 'dart:io';
+import 'package:book_revenue/resources/widgets/inputWidget.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -9,7 +12,6 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -31,9 +33,49 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  TextEditingController guestNameController  = TextEditingController();
-  
-  
+  TextEditingController guestNameController = TextEditingController();
+  TextEditingController amountController = TextEditingController();
+  bool isVIP = false;
+  double totalBill = 0;
+  double discount = 0;
+
+  int totalGuest = 0;
+  int totalVipGuest = 0;
+  double revenue = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    loadData();
+  }
+
+  void loadData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    this.totalGuest = prefs.getInt('totalGuest') ?? 0;
+    this.totalVipGuest = prefs.getInt('totalVipGuest') ?? 0;
+    this.revenue = prefs.getDouble('revenue') ?? 0;
+  }
+
+  void updateData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('totalGuest', this.totalGuest);
+    await prefs.setInt('totalVipGuest', this.totalVipGuest);
+    await prefs.setDouble('revenue', this.revenue);
+
+    exit(0);
+  }
+
+  void calculateTotal() {
+    this.discount = this.isVIP == true ? 0.1 : 0;
+    int amount = int.tryParse(amountController.text) ?? 0;
+    setState(() {
+      if (amount > 0) {
+        this.totalBill = 20000 * amount * (1 - this.discount);
+        this.totalGuest++;
+        this.revenue += this.totalBill;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,35 +89,229 @@ class _MyHomePageState extends State<MyHomePage> {
         children: [
           Container(
             width: MediaQuery.of(context).size.width,
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.only(top: 8, bottom: 8, left: 16, right: 16),
             color: Colors.green,
             child: const Text('Thông tin hoá đơn',
                 textAlign: TextAlign.start,
                 style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
           ),
           Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
-              textDirection: TextDirection.rtl,
-              verticalDirection: VerticalDirection.down,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Expanded(
-                  flex: 1,
-                  child: Text('Tên khách hàng:'),
-                ),
+                    flex: 1,
+                    child: Container(
+                      margin: EdgeInsets.only(left: 16),
+                      alignment: Alignment.centerLeft,
+                      child: Text('Tên khách hàng:'),
+                    )),
                 Expanded(
-                  flex: 1,
-                  child: inputWidget(
-                  labelText: 'Điểm Toán',
-                  controller: guestNameController,
-                  hintText: 'Nhập điểm Toán'),
+                  flex: 2,
+                  child: inputTextWidget(
+                      controller: guestNameController, hintText: 'Nhập tên khách hàng'),
                 ),
               ]),
+          Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                    flex: 1,
+                    child: Container(
+                      margin: EdgeInsets.only(left: 16),
+                      alignment: Alignment.centerLeft,
+                      child: Text('Số lượng sách:'),
+                    )),
+                Expanded(
+                  flex: 2,
+                  child: inputNumberWidget(
+                      controller: amountController, hintText: 'Nhập số lượng sách'),
+                ),
+              ]),
+          SizedBox(height: 16),
+          Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                    flex: 1,
+                    child: Container(
+                      margin: EdgeInsets.only(left: 16),
+                      alignment: Alignment.centerLeft,
+                    )),
+                Expanded(
+                  flex: 2,
+                  child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Checkbox(
+                          checkColor: Colors.white,
+                          value: this.isVIP,
+                          activeColor: Colors.orange,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              this.isVIP = value!;
+                              if (this.isVIP) {
+                                this.totalVipGuest++;
+                              }
+                            });
+                          },
+                        ),
+                        SizedBox(width: 4),
+                        Text('Khách hàng VIP')
+                      ]),
+                ),
+              ]),
+          SizedBox(height: 16),
+          Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                    flex: 1,
+                    child: Container(
+                      margin: EdgeInsets.only(left: 16),
+                      alignment: Alignment.centerLeft,
+                      child: Text('Thành tiền:'),
+                    )),
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                      padding: EdgeInsets.all(8),
+                      margin: EdgeInsets.only(right: 16),
+                      alignment: Alignment.center,
+                      color: Color.fromARGB(255, 203, 206, 223),
+                      child: Text(this.totalBill.toString())),
+                ),
+              ]),
+          SizedBox(height: 16),
+          Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(width: 16),
+                Expanded(
+                  flex: 1,
+                  child: ElevatedButton(
+                      onPressed: calculateTotal,
+                      style: ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all(Colors.deepOrange.shade900)),
+                      child: const Text('Tính TT')),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  flex: 1,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      guestNameController.clear();
+                      amountController.clear();
+                    },
+                    style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.all(Colors.deepOrange.shade900)),
+                    child: const Text('Tiếp'),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  flex: 1,
+                  child: ElevatedButton(
+                    onPressed: () {},
+                    style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.all(Colors.deepOrange.shade900)),
+                    child: const Text('Thống kê'),
+                  ),
+                ),
+                SizedBox(width: 16),
+              ]),
+          SizedBox(height: 16),
+          Container(
+            width: MediaQuery.of(context).size.width,
+            padding: const EdgeInsets.only(top: 8, bottom: 8, left: 16, right: 16),
+            color: Colors.green,
+            child: const Text('Thông tin thống kê',
+                textAlign: TextAlign.start,
+                style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+          ),
+          SizedBox(height: 16),
+          Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                    flex: 1,
+                    child: Container(
+                      margin: EdgeInsets.only(left: 16),
+                      alignment: Alignment.centerLeft,
+                      child: Text('Tổng số khách:'),
+                    )),
+                Expanded(
+                    flex: 1,
+                    child: Container(
+                      margin: EdgeInsets.only(left: 16),
+                      alignment: Alignment.centerLeft,
+                      child: Text(this.totalGuest.toString()),
+                    )),
+              ]),
+          SizedBox(height: 16),
+          Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                    flex: 1,
+                    child: Container(
+                      margin: EdgeInsets.only(left: 16),
+                      alignment: Alignment.centerLeft,
+                      child: Text('Tổng số khách VIP:'),
+                    )),
+                Expanded(
+                    flex: 1,
+                    child: Container(
+                      margin: EdgeInsets.only(left: 16),
+                      alignment: Alignment.centerLeft,
+                      child: Text(this.totalVipGuest.toString()),
+                    )),
+              ]),
+          SizedBox(height: 16),
+          Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                    flex: 1,
+                    child: Container(
+                      margin: EdgeInsets.only(left: 16),
+                      alignment: Alignment.centerLeft,
+                      child: Text('Tổng doanh thu:'),
+                    )),
+                Expanded(
+                    flex: 1,
+                    child: Container(
+                      margin: EdgeInsets.only(left: 16),
+                      alignment: Alignment.centerLeft,
+                      child: Text(this.revenue.toString()),
+                    )),
+              ]),
+          SizedBox(height: 16),
+          Container(
+            width: MediaQuery.of(context).size.width,
+            height: 40,
+            color: Colors.green,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IconButton(
+                icon: Image.asset('assets/img/logout.png', width: 20),
+                iconSize: 40,
+                onPressed: updateData,
+              ),
+            ],
+          )
         ],
       ),
-      
     );
   }
 }
-
-
