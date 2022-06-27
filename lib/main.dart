@@ -42,6 +42,7 @@ class _MyHomePageState extends State<MyHomePage> {
   int? totalGuest;
   int? totalVipGuest;
   double? revenue;
+  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
   @override
   void initState() {
@@ -50,38 +51,47 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void loadData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    this.totalGuest = prefs.getInt('totalGuest') ?? 0;
-    this.totalVipGuest = prefs.getInt('totalVipGuest') ?? 0;
-    this.revenue = prefs.getDouble('revenue') ?? 0;
+    await _prefs.then((value) => {
+          this.totalGuest = value.getInt('totalGuest') ?? 0,
+          this.totalVipGuest = value.getInt('totalVipGuest') ?? 0,
+          this.revenue = value.getDouble('revenue') ?? 0,
+        });
   }
 
   void exitApp() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('totalGuest', this.totalGuest ?? 0);
-    await prefs.setInt('totalVipGuest', this.totalVipGuest ?? 0);
-    await prefs.setDouble('revenue', this.revenue ?? 0);
+    final prefs = await _prefs;
+    await prefs.setInt('totalGuest', this.totalGuest!);
+    await prefs.setInt('totalVipGuest', this.totalVipGuest!);
+    await prefs.setDouble('revenue', this.revenue!);
 
     exit(0);
   }
 
-  void updateData() async {}
+  void updateData() {
+    saveInformation(totalGuest: this.totalGuest!, totalVipGuest: this.totalVipGuest!, revenue: this.revenue!);
+  }
 
   void calculateTotal() async {
     this.discount = this.isVIP == true ? 0.1 : 0;
+    int vipAmount = this.isVIP == true ? 1 : 0;
     int amount = int.tryParse(amountController.text) ?? 0;
     setState(() {
       if (amount > 0) {
         this.totalBill = 20000 * amount * (1 - this.discount);
-        this.totalGuest = this.totalGuest ?? 0 + 1;
-        this.revenue = this.revenue ?? 0 + this.totalBill;
+        this.totalGuest = this.totalGuest! + 1;
+        this.totalVipGuest = this.totalVipGuest! + vipAmount;
+        this.revenue = this.revenue! + this.totalBill;
       }
     });
+  }
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('totalGuest', this.totalGuest ?? 0);
-    await prefs.setInt('totalVipGuest', this.totalVipGuest ?? 0);
-    await prefs.setDouble('revenue', this.revenue ?? 0);
+  void saveInformation(
+      {required int totalGuest, required int totalVipGuest, required double revenue}) async {
+    await _prefs.then((value) => {
+          value.setInt('totalGuest', totalGuest),
+          value.setInt('totalVipGuest', totalVipGuest),
+          value.setDouble('revenue', revenue),
+        });
   }
 
   @override
@@ -232,7 +242,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       context: context,
                       builder: (BuildContext context) => AlertDialog(
                         title: const Text('Thống kê'),
-                        content: Text('Tổng doanh thu là ${this.revenue.toString()}'),
+                        content: Text('Tổng doanh thu là $revenue đồng'),
                         actions: <Widget>[
                           TextButton(
                             onPressed: () => Navigator.pop(context, 'OK'),
