@@ -39,9 +39,9 @@ class _MyHomePageState extends State<MyHomePage> {
   double totalBill = 0;
   double discount = 0;
 
-  int totalGuest = 0;
-  int totalVipGuest = 0;
-  double revenue = 0;
+  int? totalGuest;
+  int? totalVipGuest;
+  double? revenue;
 
   @override
   void initState() {
@@ -56,25 +56,32 @@ class _MyHomePageState extends State<MyHomePage> {
     this.revenue = prefs.getDouble('revenue') ?? 0;
   }
 
-  void updateData() async {
+  void exitApp() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('totalGuest', this.totalGuest);
-    await prefs.setInt('totalVipGuest', this.totalVipGuest);
-    await prefs.setDouble('revenue', this.revenue);
+    await prefs.setInt('totalGuest', this.totalGuest ?? 0);
+    await prefs.setInt('totalVipGuest', this.totalVipGuest ?? 0);
+    await prefs.setDouble('revenue', this.revenue ?? 0);
 
     exit(0);
   }
 
-  void calculateTotal() {
+  void updateData() async {}
+
+  void calculateTotal() async {
     this.discount = this.isVIP == true ? 0.1 : 0;
     int amount = int.tryParse(amountController.text) ?? 0;
     setState(() {
       if (amount > 0) {
         this.totalBill = 20000 * amount * (1 - this.discount);
-        this.totalGuest++;
-        this.revenue += this.totalBill;
+        this.totalGuest = this.totalGuest ?? 0 + 1;
+        this.revenue = this.revenue ?? 0 + this.totalBill;
       }
     });
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('totalGuest', this.totalGuest ?? 0);
+    await prefs.setInt('totalVipGuest', this.totalVipGuest ?? 0);
+    await prefs.setDouble('revenue', this.revenue ?? 0);
   }
 
   @override
@@ -154,7 +161,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             setState(() {
                               this.isVIP = value!;
                               if (this.isVIP) {
-                                this.totalVipGuest++;
+                                this.totalVipGuest = this.totalVipGuest ?? 0 + 1;
                               }
                             });
                           },
@@ -207,6 +214,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     onPressed: () {
                       guestNameController.clear();
                       amountController.clear();
+                      setState(() {
+                        this.totalBill = 0;
+                        this.isVIP = false;
+                      });
                     },
                     style: ButtonStyle(
                         backgroundColor: MaterialStateProperty.all(Colors.deepOrange.shade900)),
@@ -217,7 +228,19 @@ class _MyHomePageState extends State<MyHomePage> {
                 Expanded(
                   flex: 1,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () => showDialog<String>(
+                      context: context,
+                      builder: (BuildContext context) => AlertDialog(
+                        title: const Text('Thống kê'),
+                        content: Text('Tổng doanh thu là ${this.revenue.toString()}'),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, 'OK'),
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    ),
                     style: ButtonStyle(
                         backgroundColor: MaterialStateProperty.all(Colors.deepOrange.shade900)),
                     child: const Text('Thống kê'),
@@ -306,7 +329,23 @@ class _MyHomePageState extends State<MyHomePage> {
               IconButton(
                 icon: Image.asset('assets/img/logout.png', width: 20),
                 iconSize: 40,
-                onPressed: updateData,
+                onPressed: () => showDialog<String>(
+                  context: context,
+                  builder: (BuildContext context) => AlertDialog(
+                    title: const Text('Thông báo'),
+                    content: const Text('Bạn có chắc chắn muốn thoát app?'),
+                    actions: <Widget>[
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, 'Huỷ bỏ'),
+                        child: const Text('Huỷ bỏ'),
+                      ),
+                      TextButton(
+                        onPressed: exitApp,
+                        child: const Text('Xác nhận'),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           )
