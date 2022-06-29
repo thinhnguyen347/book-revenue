@@ -42,7 +42,6 @@ class _MyHomePageState extends State<MyHomePage> {
   int? totalGuest;
   int? totalVipGuest;
   double? revenue;
-  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
   @override
   void initState() {
@@ -50,16 +49,19 @@ class _MyHomePageState extends State<MyHomePage> {
     loadData();
   }
 
-  void loadData() async {
-    await _prefs.then((value) => {
-          this.totalGuest = value.getInt('totalGuest') ?? 0,
-          this.totalVipGuest = value.getInt('totalVipGuest') ?? 0,
-          this.revenue = value.getDouble('revenue') ?? 0,
-        });
+  Future<void> loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      this.totalGuest = prefs.getInt('totalGuest') ?? 0;
+      this.totalVipGuest = prefs.getInt('totalVipGuest') ?? 0;
+      this.revenue = prefs.getDouble('revenue') ?? 0;
+    });
   }
 
   void exitApp() async {
-    final prefs = await _prefs;
+    final prefs = await SharedPreferences.getInstance();
+
     await prefs.setInt('totalGuest', this.totalGuest!);
     await prefs.setInt('totalVipGuest', this.totalVipGuest!);
     await prefs.setDouble('revenue', this.revenue!);
@@ -68,30 +70,45 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void updateData() {
-    saveInformation(totalGuest: this.totalGuest!, totalVipGuest: this.totalVipGuest!, revenue: this.revenue!);
+    int amount = int.tryParse(amountController.text) ?? 0;
+    int vipAmount = this.isVIP == true ? 1 : 0;
+    setState(() {
+      if (amount > 0) {
+        this.totalGuest = this.totalGuest! + 1;
+        this.totalVipGuest = this.totalVipGuest! + vipAmount;
+        this.revenue = this.revenue! + this.totalBill;
+      }
+    });
+    saveInformation(
+        totalGuest: this.totalGuest!, totalVipGuest: this.totalVipGuest!, revenue: this.revenue!);
+  }
+
+  void clearData() {
+    guestNameController.clear();
+    amountController.clear();
+    setState(() {
+      this.totalBill = 0;
+      this.isVIP = false;
+    });
   }
 
   void calculateTotal() async {
     this.discount = this.isVIP == true ? 0.1 : 0;
-    int vipAmount = this.isVIP == true ? 1 : 0;
     int amount = int.tryParse(amountController.text) ?? 0;
     setState(() {
       if (amount > 0) {
         this.totalBill = 20000 * amount * (1 - this.discount);
-        this.totalGuest = this.totalGuest! + 1;
-        this.totalVipGuest = this.totalVipGuest! + vipAmount;
-        this.revenue = this.revenue! + this.totalBill;
       }
     });
   }
 
   void saveInformation(
       {required int totalGuest, required int totalVipGuest, required double revenue}) async {
-    await _prefs.then((value) => {
-          value.setInt('totalGuest', totalGuest),
-          value.setInt('totalVipGuest', totalVipGuest),
-          value.setDouble('revenue', revenue),
-        });
+    final prefs = await SharedPreferences.getInstance();
+
+    prefs.setInt('totalGuest', totalGuest);
+    prefs.setInt('totalVipGuest', totalVipGuest);
+    prefs.setDouble('revenue', revenue);
   }
 
   @override
@@ -222,12 +239,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   flex: 1,
                   child: ElevatedButton(
                     onPressed: () {
-                      guestNameController.clear();
-                      amountController.clear();
-                      setState(() {
-                        this.totalBill = 0;
-                        this.isVIP = false;
-                      });
+                      updateData();
+                      clearData();
                     },
                     style: ButtonStyle(
                         backgroundColor: MaterialStateProperty.all(Colors.deepOrange.shade900)),
@@ -364,3 +377,4 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
